@@ -1,0 +1,121 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "D:\\penis\\PROSD\\PROSD.backend.net\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{03A8006C-0183-49A8-A51E-C3C4E0C8CE3F}|PROSD.backend.net\\PROSD.backend.net.csproj|d:\\penis\\prosd\\prosd.backend.net\\prosd.backend.net\\weatherforecast.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{03A8006C-0183-49A8-A51E-C3C4E0C8CE3F}|PROSD.backend.net\\PROSD.backend.net.csproj|solutionrelative:prosd.backend.net\\weatherforecast.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{03A8006C-0183-49A8-A51E-C3C4E0C8CE3F}|PROSD.backend.net\\PROSD.backend.net.csproj|d:\\penis\\prosd\\prosd.backend.net\\prosd.backend.net\\dockerfile||{8B382828-6202-11D1-8870-0000F87579D2}",
+      "RelativeMoniker": "D:0:0:{03A8006C-0183-49A8-A51E-C3C4E0C8CE3F}|PROSD.backend.net\\PROSD.backend.net.csproj|solutionrelative:prosd.backend.net\\dockerfile||{8B382828-6202-11D1-8870-0000F87579D2}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{03A8006C-0183-49A8-A51E-C3C4E0C8CE3F}|PROSD.backend.net\\PROSD.backend.net.csproj|d:\\penis\\prosd\\prosd.backend.net\\prosd.backend.net\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{03A8006C-0183-49A8-A51E-C3C4E0C8CE3F}|PROSD.backend.net\\PROSD.backend.net.csproj|solutionrelative:prosd.backend.net\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{03A8006C-0183-49A8-A51E-C3C4E0C8CE3F}|PROSD.backend.net\\PROSD.backend.net.csproj|d:\\penis\\prosd\\prosd.backend.net\\prosd.backend.net\\controllers\\weatherforecastcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{03A8006C-0183-49A8-A51E-C3C4E0C8CE3F}|PROSD.backend.net\\PROSD.backend.net.csproj|solutionrelative:prosd.backend.net\\controllers\\weatherforecastcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{03A8006C-0183-49A8-A51E-C3C4E0C8CE3F}|PROSD.backend.net\\PROSD.backend.net.csproj|d:\\penis\\prosd\\prosd.backend.net\\prosd.backend.net\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
+      "RelativeMoniker": "D:0:0:{03A8006C-0183-49A8-A51E-C3C4E0C8CE3F}|PROSD.backend.net\\PROSD.backend.net.csproj|solutionrelative:prosd.backend.net\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{03A8006C-0183-49A8-A51E-C3C4E0C8CE3F}|PROSD.backend.net\\PROSD.backend.net.csproj|d:\\penis\\prosd\\prosd.backend.net\\prosd.backend.net\\prosd.backend.net.csproj||{04B8AB82-A572-4FEF-95CE-5222444B6B64}|",
+      "RelativeMoniker": "D:0:0:{03A8006C-0183-49A8-A51E-C3C4E0C8CE3F}|PROSD.backend.net\\PROSD.backend.net.csproj|solutionrelative:prosd.backend.net\\prosd.backend.net.csproj||{04B8AB82-A572-4FEF-95CE-5222444B6B64}|"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 1,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "Dockerfile",
+              "DocumentMoniker": "D:\\penis\\PROSD\\PROSD.backend.net\\PROSD.backend.net\\Dockerfile",
+              "RelativeDocumentMoniker": "PROSD.backend.net\\Dockerfile",
+              "ToolTip": "D:\\penis\\PROSD\\PROSD.backend.net\\PROSD.backend.net\\Dockerfile",
+              "RelativeToolTip": "PROSD.backend.net\\Dockerfile",
+              "ViewState": "AgIAAAcAAAAAAAAAAADwvxYAAAAuAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001001|",
+              "WhenOpened": "2026-02-28T14:27:51.271Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "WeatherForecast.cs",
+              "DocumentMoniker": "D:\\penis\\PROSD\\PROSD.backend.net\\PROSD.backend.net\\WeatherForecast.cs",
+              "RelativeDocumentMoniker": "PROSD.backend.net\\WeatherForecast.cs",
+              "ToolTip": "D:\\penis\\PROSD\\PROSD.backend.net\\PROSD.backend.net\\WeatherForecast.cs",
+              "RelativeToolTip": "PROSD.backend.net\\WeatherForecast.cs",
+              "ViewState": "AgIAAAEAAAAAAAAAAAAwwAwAAAAWAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-02-28T14:42:20.626Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "Program.cs",
+              "DocumentMoniker": "D:\\penis\\PROSD\\PROSD.backend.net\\PROSD.backend.net\\Program.cs",
+              "RelativeDocumentMoniker": "PROSD.backend.net\\Program.cs",
+              "ToolTip": "D:\\penis\\PROSD\\PROSD.backend.net\\PROSD.backend.net\\Program.cs",
+              "RelativeToolTip": "PROSD.backend.net\\Program.cs",
+              "ViewState": "AgIAAAUAAAAAAAAAAAAmwBUAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-02-28T14:27:43.839Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "WeatherForecastController.cs",
+              "DocumentMoniker": "D:\\penis\\PROSD\\PROSD.backend.net\\PROSD.backend.net\\Controllers\\WeatherForecastController.cs",
+              "RelativeDocumentMoniker": "PROSD.backend.net\\Controllers\\WeatherForecastController.cs",
+              "ToolTip": "D:\\penis\\PROSD\\PROSD.backend.net\\PROSD.backend.net\\Controllers\\WeatherForecastController.cs",
+              "RelativeToolTip": "PROSD.backend.net\\Controllers\\WeatherForecastController.cs",
+              "ViewState": "AgIAAAwAAAAAAAAAAAAiwBsAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-02-28T14:27:33.524Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "appsettings.json",
+              "DocumentMoniker": "D:\\penis\\PROSD\\PROSD.backend.net\\PROSD.backend.net\\appsettings.json",
+              "RelativeDocumentMoniker": "PROSD.backend.net\\appsettings.json",
+              "ToolTip": "D:\\penis\\PROSD\\PROSD.backend.net\\PROSD.backend.net\\appsettings.json",
+              "RelativeToolTip": "PROSD.backend.net\\appsettings.json",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
+              "WhenOpened": "2026-02-28T14:27:32.898Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "PROSD.backend.net",
+              "DocumentMoniker": "D:\\penis\\PROSD\\PROSD.backend.net\\PROSD.backend.net\\PROSD.backend.net.csproj",
+              "RelativeDocumentMoniker": "PROSD.backend.net\\PROSD.backend.net.csproj",
+              "ToolTip": "D:\\penis\\PROSD\\PROSD.backend.net\\PROSD.backend.net\\PROSD.backend.net.csproj",
+              "RelativeToolTip": "PROSD.backend.net\\PROSD.backend.net.csproj",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
+              "WhenOpened": "2026-02-28T14:27:30.422Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "version": 2,
+  "dgSpecHash": "tgoc/YSouHE=",
+  "success": true,
+  "projectFilePath": "D:\\penis\\PROSD\\PROSD.backend.net\\PROSD.backend.net\\PROSD.backend.net.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\Lauri\\.nuget\\packages\\microsoft.aspnetcore.openapi\\10.0.2\\microsoft.aspnetcore.openapi.10.0.2.nupkg.sha512",
+    "C:\\Users\\Lauri\\.nuget\\packages\\microsoft.openapi\\2.0.0\\microsoft.openapi.2.0.0.nupkg.sha512",
+    "C:\\Users\\Lauri\\.nuget\\packages\\microsoft.visualstudio.azure.containers.tools.targets\\1.23.0\\microsoft.visualstudio.azure.containers.tools.targets.1.23.0.nupkg.sha512"
+  ],
+  "logs": []
+}

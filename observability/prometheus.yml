@@ -1,0 +1,70 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'prosd'
+    environment: 'development'  # Hardcoded; change per environment as needed
+
+# alerting:
+#   alertmanagers:
+#     - static_configs:
+#         - targets: ['alertmanager:9093']
+
+rule_files:
+  # - "prosd_rules.yml"
+
+scrape_configs:
+  # ── Prometheus Self-Monitoring ──────────────────────────────
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+    scrape_timeout: 10s
+
+  # ── API Gateway (.NET) ──────────────────────────────────────
+  - job_name: 'gateway'
+    static_configs:
+      - targets: ['gateway:80']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+    scrape_timeout: 8s  # Must be < scrape_interval
+    metric_relabel_configs:
+      # Keep relevant ASP.NET Core / OpenTelemetry metrics
+      - source_labels: [__name__]
+        regex: 'dotnet_.*|aspnetcore_.*|kestrel_.*|http_server_.*|http_client_.*|process_.*|runtime_.*|request_.*|response_.*|grpc_.*'
+        action: keep
+      # Drop noisy exporter/runtime metrics
+      - source_labels: [__name__]
+        regex: 'go_.*|promhttp_.*'
+        action: drop
+
+  # ── Python Algorithm Service ────────────────────────────────
+  - job_name: 'python-service'
+    static_configs:
+      - targets: ['python-service:8000']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+    scrape_timeout: 8s
+
+  # ── Container Metrics (cAdvisor) ────────────────────────────
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['cadvisor:8080']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+    scrape_timeout: 25s
+
+  # ── PostgreSQL Metrics ──────────────────────────────────────
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['postgres_exporter:9187']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+    scrape_timeout: 25s
+
+  # ── RabbitMQ Metrics (uncomment when exporter is added) ─────
+  # - job_name: 'rabbitmq'
+  #   static_configs:
+  #     - targets: ['rabbitmq-exporter:9419']
+  #   metrics_path: '/metrics'
+  #   scrape_interval: 30s
+  #   scrape_timeout: 25s

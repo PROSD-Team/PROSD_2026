@@ -1,0 +1,299 @@
+services:
+  # CORE INFRASTRUCTURE
+  postgres:
+    image: postgres:15-alpine
+    container_name: postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - internal-net
+    ports:
+      - "${DB_PORT}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+    
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - internal-net
+    ports:
+      - "${RABBITMQ_PORT}:5672"
+      - "${RABBITMQ_MANAGEMENT_PORT}:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
+
+  minio:
+    image: minio/minio:latest # or use quay.io/minio/minio:latest
+    container_name: minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    volumes:
+      - minio_data:/data
+    networks:
+      - internal-net
+      - public-net
+    ports:
+      - "9000:9000"                       # S3 API
+      - "${MINIO_CONSOLE_PORT}:9001"      # Console UI
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+  # OBSERVABILITY STACK
+  loki:
+    image: grafana/loki:2.8.2
+    container_name: loki
+    command: -config.file=/etc/loki/local-config.yaml
+    volumes:
+      - ../observability/loki-config.yaml:/etc/loki/local-config.yaml:ro
+      - loki_data:/loki
+    networks:
+      - internal-net
+    ports:
+      - "${LOKI_PORT}:3100"
+    restart: unless-stopped
+    profiles:
+      - observability
+      - logging
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3100/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  prometheus:
+    image: prom/prometheus:v2.47.0
+    container_name: prometheus
+    volumes:
+      - ../observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'    
+    networks:
+      - internal-net
+    ports:
+      - "${PROMETHEUS_PORT}:9090"
+    restart: unless-stopped
+    profiles:
+      - observability
+      - metrics
+
+  grafana:
+    image: grafana/grafana:9.0.0
+    container_name: grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
+      - GF_AUTH_ANONYMOUS_ENABLED=false
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ../grafana/provisioning:/etc/grafana/provisioning
+      - ../observability/grafana-dashboards:/var/lib/grafana/dashboards
+    networks:
+      - internal-net
+      - public-net
+    ports:
+      - "${GRAFANA_PORT}:3000"
+    depends_on:
+      prometheus:
+        condition: service_started
+      loki:
+        condition: service_healthy
+    restart: unless-stopped
+    profiles:
+      - observability
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.51.0
+    container_name: cadvisor
+    privileged: true
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    networks:
+      - internal-net
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+    profiles:
+      - observability
+      - metrics
+
+  postgres_exporter:
+    image: prometheuscommunity/postgres-exporter:v0.14.0
+    container_name: postgres-exporter
+    environment:
+      DATA_SOURCE_NAME: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${DB_HOST}:${DB_PORT}/${POSTGRES_DB}?sslmode=disable"
+    networks:
+      - internal-net
+    ports:
+      - "9187:9187"
+    restart: unless-stopped
+    profiles:
+      - observability
+      - metrics
+
+  # APPLICATION SERVICES
+  gateway:
+    build:
+      context: ../PROSD.backend.net/PROSD.backend.net
+      dockerfile: Dockerfile
+    container_name: gateway
+    environment:
+      - ASPNETCORE_ENVIRONMENT=${ENVIRONMENT}
+      - ASPNETCORE_URLS=http://+:80
+      - ConnectionStrings__DefaultConnection=Host=${DB_HOST};Port=${DB_PORT};Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      - RabbitMQ__Host=${RABBITMQ_HOST}
+      - RabbitMQ__Port=${RABBITMQ_PORT}
+      - RabbitMQ__User=${RABBITMQ_DEFAULT_USER}
+      - RabbitMQ__Pass=${RABBITMQ_DEFAULT_PASS}
+      - MinIO__Endpoint=${MINIO_ENDPOINT}
+      - MinIO__AccessKey=${MINIO_ROOT_USER}
+      - MinIO__SecretKey=${MINIO_ROOT_PASSWORD}
+      - LOKI_URL=http://loki:3100
+      - PROMETHEUS_URL=http://prometheus:9090
+      - ENABLE_METRICS=${ENABLE_METRICS}
+      - ENABLE_LOGGING=${ENABLE_LOGGING}
+    volumes:
+      - ../PROSD.backend.net/PROSD.backend.net/appsettings.json:/app/appsettings.json:ro
+    ports:
+      - "${GATEWAY_PORT}:80"
+    networks:
+      - internal-net
+      - public-net
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      minio:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+
+  python-service:
+    build:
+      context: ../python-service
+      dockerfile: Dockerfile
+    container_name: python-service
+    environment:
+      # Database
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_USER=${POSTGRES_USER}
+      - DB_PASS=${POSTGRES_PASSWORD}
+      - DB_NAME=${POSTGRES_DB}
+      # RabbitMQ
+      - RABBITMQ_HOST=${RABBITMQ_HOST}
+      - RABBITMQ_PORT=${RABBITMQ_PORT}
+      - RABBITMQ_USER=${RABBITMQ_DEFAULT_USER}
+      - RABBITMQ_PASS=${RABBITMQ_DEFAULT_PASS}
+      - RABBITMQ_QUEUE=${RABBITMQ_QUEUE}
+      - RABBITMQ_MAX_RETRIES=${RABBITMQ_MAX_RETRIES}
+      - RABBITMQ_DLQ_EXCHANGE=${RABBITMQ_DLQ_EXCHANGE}
+      - RABBITMQ_DLQ_QUEUE=${RABBITMQ_DLQ_QUEUE}
+      # MinIO
+      - MINIO_ENDPOINT=${MINIO_ENDPOINT}
+      - MINIO_ACCESS_KEY=${MINIO_ROOT_USER}
+      - MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD}
+      - MINIO_BUCKET=${MINIO_BUCKET}
+      # Observability
+      - LOKI_URL=http://loki:3100
+      - METRICS_PORT=${PYTHON_METRICS_PORT}
+      - ENABLE_METRICS=${ENABLE_METRICS}
+      - ENABLE_LOGGING=${ENABLE_LOGGING}
+      - COMPOSE_PROJECT_NAME=${COMPOSE_PROJECT_NAME}
+      - ASPNETCORE_ENVIRONMENT=${ENVIRONMENT}
+    networks:
+      - internal-net
+    depends_on:
+      rabbitmq:
+        condition: service_healthy  # Critical: wait for healthy RabbitMQ
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s  # Give time for RabbitMQ connection retries
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+    container_name: frontend
+    ports:
+      - "${FRONTEND_PORT}:80"
+    networks:
+      - public-net
+    depends_on:
+      - gateway
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+# NETWORKS & VOLUMES
+networks:
+  public-net:
+    driver: bridge
+    name: prods-public
+  internal-net:
+    driver: bridge
+    name: prods-internal
+    internal: true
+
+volumes:
+  postgres_data:
+  rabbitmq_data:
+  minio_data:
+  loki_data:
+  prometheus_data:
+  grafana_data:

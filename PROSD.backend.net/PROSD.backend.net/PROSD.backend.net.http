@@ -1,0 +1,6 @@
+@PROSD.backend.net_HostAddress = http://localhost:5221
+
+GET {{PROSD.backend.net_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
