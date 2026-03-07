@@ -1,3 +1,6 @@
+node_modules/
+dist/
+
 # Logs
 logs
 *.log
@@ -22,5 +25,3 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-node_modules/
-dist/
