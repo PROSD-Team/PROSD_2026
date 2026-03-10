@@ -1,6 +1,14 @@
-@PROSD.backend.net_HostAddress = http://localhost:5221
+@PROSD.backend.net_HostAddress = https://localhost:44312
 
+### weatherforecast
 GET {{PROSD.backend.net_HostAddress}}/weatherforecast/
 Accept: application/json
 
-###
+### ### Example request for testing API
+POST {{PROSD.backend.net_HostAddress}}/jobs
+Content-Type: application/json
+
+{
+  "title": "Test job",
+  "description": "first test"
+}
