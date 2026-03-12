@@ -1,5 +1,7 @@
 import './App.css'
-import RegistrationForm from './components/RegistrationForm';
+import RegistrationForm from './pages/RegistrationForm.tsx';
+import Test from "./components/Test.tsx"
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 
 function App() {
 
@@ -7,11 +9,12 @@ function App() {
 
   return (
 
-
-    <div className="min-h-screen bg-gray-50 py-10">
-
-      <RegistrationForm />
-    </div>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<RegistrationForm />} />
+        <Route path="/test" element={<Test />} />
+      </Routes>
+    </BrowserRouter>
 
   )
 

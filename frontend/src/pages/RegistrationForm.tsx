@@ -27,14 +27,14 @@ export default function RegistrationForm() {
   // Функція обробки успішної валідації
   const onSubmit = async (data: FormData) => {
     try {
-      
-        // Тут має бути реальний запит на бекенд!!!!!!!!!!!!!!!
+
+      // Тут має бути реальний запит на бекенд!!!!!!!!!!!!!!!
 
       await new Promise((resolve) => setTimeout(resolve, 1500));
-      
+
       console.log("Дані, готові до відправки:", data);
       alert("Форма успішно відправлена!");
-      
+
       // Очищаємо форму після успішної відправки
       reset();
     } catch (error) {
@@ -45,10 +45,10 @@ export default function RegistrationForm() {
   return (
     <div className="max-w-md mx-auto mt-10 p-6 bg-white border border-gray-200 rounded-2xl shadow-sm">
       <h2 className="text-2xl font-bold mb-6 text-gray-800">Реєстрація</h2>
-      
+
       {/* handleSubmit автоматично зупинить відправку, якщо є помилки валідації */}
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-        
+
         {/* Поле Username */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -58,11 +58,10 @@ export default function RegistrationForm() {
             {...register("username")}
             type="text"
             placeholder="Введіть ім'я"
-            className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 transition-colors ${
-              errors.username 
-                ? "border-red-500 focus:ring-red-200" 
-                : "border-gray-300 focus:ring-blue-200 focus:border-blue-500"
-            }`}
+            className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 transition-colors ${errors.username
+              ? "border-red-500 focus:ring-red-200"
+              : "border-gray-300 focus:ring-blue-200 focus:border-blue-500"
+              }`}
           />
           {/* Виведення повідомлення про помилку */}
           {errors.username && (
@@ -79,11 +78,10 @@ export default function RegistrationForm() {
             {...register("email")}
             type="email"
             placeholder="example@mail.com"
-            className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 transition-colors ${
-              errors.email 
-                ? "border-red-500 focus:ring-red-200" 
-                : "border-gray-300 focus:ring-blue-200 focus:border-blue-500"
-            }`}
+            className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 transition-colors ${errors.email
+              ? "border-red-500 focus:ring-red-200"
+              : "border-gray-300 focus:ring-blue-200 focus:border-blue-500"
+              }`}
           />
           {errors.email && (
             <p className="mt-1 text-sm text-red-500">{errors.email.message}</p>
@@ -99,11 +97,10 @@ export default function RegistrationForm() {
             {...register("password")}
             type="password"
             placeholder="••••••••"
-            className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 transition-colors ${
-              errors.password 
-                ? "border-red-500 focus:ring-red-200" 
-                : "border-gray-300 focus:ring-blue-200 focus:border-blue-500"
-            }`}
+            className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 transition-colors ${errors.password
+              ? "border-red-500 focus:ring-red-200"
+              : "border-gray-300 focus:ring-blue-200 focus:border-blue-500"
+              }`}
           />
           {errors.password && (
             <p className="mt-1 text-sm text-red-500">{errors.password.message}</p>
