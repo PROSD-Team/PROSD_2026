@@ -1,6 +1,6 @@
-﻿using Microsoft.AspNetCore.Connections;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using PROSD.backend.net.Data;
+using PROSD.backend.net.Dtos;
 using PROSD.backend.net.Models;
 using RabbitMQ.Client;
 using System.Text;
@@ -13,15 +13,19 @@ namespace PROSD.backend.net.Controllers
     public class JobsController : ControllerBase
     {
         private readonly AppDbContext _context;
+        private readonly ILogger<JobsController> _logger;
 
-        public JobsController(AppDbContext context)
+        public JobsController(AppDbContext context, ILogger<JobsController> logger)
         {
             _context = context;
+            _logger = logger;
         }
 
         [HttpPost]
-        public async Task<IActionResult> CreateJob([FromBody] Job request)
+        public async Task<IActionResult> CreateJob([FromBody] CreateJobRequest request)
         {
+            _logger.LogInformation("Received request to create job");
+
             if (request == null)
                 return BadRequest("Request body is required.");
 
@@ -37,7 +41,9 @@ namespace PROSD.backend.net.Controllers
             };
 
             _context.Jobs.Add(job);
-            _context.SaveChanges();
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Job saved to database with Id {JobId}", job.Id);
 
             var factory = new ConnectionFactory
             {
@@ -62,6 +68,8 @@ namespace PROSD.backend.net.Controllers
                 routingKey: "jobs",
                 body: body);
 
+            _logger.LogInformation("Job published to RabbitMQ queue 'jobs'");
+
             return Ok(new
             {
                 message = "Job created successfully",
@@ -74,6 +82,8 @@ namespace PROSD.backend.net.Controllers
         [HttpGet("{id}")]
         public IActionResult GetJob(int id)
         {
+            _logger.LogInformation("Received request to get job by Id {JobId}", id);
+
             var job = _context.Jobs.FirstOrDefault(j => j.Id == id);
 
             if (job == null)
