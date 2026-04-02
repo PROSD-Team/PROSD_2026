@@ -1,3 +1,6 @@
+node_modules/
+dist/
+
 # Logs
 logs
 *.log
@@ -22,5 +25,15 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-node_modules/
-dist/
+.venv
+
+.vs/
+*.user
+*.suo
+*.slnx.sqlite
+
+[Bb]in/
+[Oo]bj/
+
+*.cache
+*.log
