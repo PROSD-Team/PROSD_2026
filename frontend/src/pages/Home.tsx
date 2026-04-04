@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useApi } from '../hooks/useAPI'
 import { Store } from '../store/Store'
+import "../App.css";
 
-const TestPage = () => {
+const Home = () => {
   const { get } = useApi()
   const { isLoading, error } = Store()
   const [data, setData] = useState<unknown>(null)
@@ -18,7 +19,12 @@ const TestPage = () => {
   if (isLoading) return <div>Завантаження...</div>
   if (error) return <div>Помилка: {error}</div>
 
-  return <pre>{JSON.stringify(data, null, 2)}</pre>
+  return (
+    <div className='bg-[#2c2c2c] h-screen'>
+      <pre className='text-[#FFFFFF]'>{JSON.stringify(data, null, 2)}</pre>
+    </div>
+  )
+
 }
 
-export default TestPage
+export default Home;

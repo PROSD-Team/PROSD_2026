@@ -1,6 +1,6 @@
 import './App.css'
 import RegistrationForm from './pages/RegistrationForm.tsx';
-import Test from "./components/Test.tsx"
+import Home from "./pages/Home.tsx"
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 
 function App() {
@@ -12,7 +12,7 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<RegistrationForm />} />
-        <Route path="/test" element={<Test />} />
+        <Route path="/home" element={<Home />} />
       </Routes>
     </BrowserRouter>
 
