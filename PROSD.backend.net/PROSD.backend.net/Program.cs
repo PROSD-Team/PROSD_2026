@@ -1,3 +1,5 @@
+using System.Reflection;
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
@@ -22,6 +24,7 @@ builder.Services.AddCors(options =>
                   .AllowAnyMethod();
         });
 });
+builder.Services.AddControllers();
 
 var app = builder.Build();
 
@@ -33,6 +36,7 @@ if (app.Environment.IsDevelopment())
     {
         options.SwaggerEndpoint("/swagger/v1/swagger.json", "v1");
         options.RoutePrefix = string.Empty;
+        options.RoutePrefix = string.Empty; // Swagger буде відкриватися відразу за адресою http://localhost:PORT/
     });
 }
 
