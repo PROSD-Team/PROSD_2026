@@ -3,7 +3,7 @@ import { logger } from '../lib/logger'
 import { cache } from '../lib/cache'
 
 const api = axios.create({
-    baseURL: 'https://jsonplaceholder.typicode.com',
+    baseURL: 'http://localhost:5221',
 })
 
 api.interceptors.request.use((config) => {

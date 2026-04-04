@@ -9,7 +9,7 @@ const TestPage = () => {
 
   useEffect(() => {
     const fetch = async () => {
-      const result = await get('/posts/1')
+      const result = await get('/api/Meta/algorithms')
       if (result) setData(result)
     }
     fetch()
