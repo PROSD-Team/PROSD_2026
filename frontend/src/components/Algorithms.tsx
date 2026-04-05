@@ -31,7 +31,7 @@ export const Algorithms: React.FC = () => {
 
 
     return (
-        <div className="bg-[#494949] text-white ">
+        <div className="bg-[#494949] text-white border-t-[3px] border-r-[3px] border-[#555555]">
             <div className="flex flex-col  items-center">
                 <div className="text-2xl text-center m-2">Algorithms</div>
                 <input type="text" placeholder="Search algorithm" className="bg-[#2c2c2c] h-10  w-60 px-15" />
