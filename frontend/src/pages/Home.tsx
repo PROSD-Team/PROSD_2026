@@ -1,33 +1,24 @@
-import { useEffect, useState } from 'react'
-import { useApi } from '../hooks/useAPI'
-import { Store } from '../store/Store'
+
 import "../App.css";
 import { Header } from '../components/Header';
+import { Algorithms } from "../components/Algorithms";
+import React from "react";
 
-const Home = () => {
-  const { get } = useApi()
-  const { isLoading, error } = Store()
-  const [data, setData] = useState<unknown>(null)
-
-  useEffect(() => {
-    const fetch = async () => {
-      const result = await get('/api/Meta/algorithms')
-      if (result) setData(result)
-    }
-    fetch()
-  }, [])
-
-  if (isLoading) return <div>Завантаження...</div>
-  if (error) return <div>Помилка: {error}</div>
-
+const Home: React.FC = () => {
   return (
+    <div className="bg-[#2c2c2c] h-screen w-screen grid grid-cols-[70px_300px_1fr_300px_70px] grid-rows-[auto_1fr] gap-0">
+      <div className="col-span-5"><Header /></div>
 
-    <div className='bg-[#2c2c2c] h-screen'>
-      <Header />
-      <pre className='text-[#FFFFFF]'>{JSON.stringify(data, null, 2)}</pre>
+      <div className="bg-[#494949] text-white border-r-[3px] border-[#555555]">1</div>
+      <Algorithms />
+      <div className="bg-[#2c2c2c] text-white border-r-[3px] border-[#555555]">
+
+
+      </div>
+      <div className="bg-[#2c2c2c] text-white border-r-[3px] border-[#555555]">params</div>
+      <div className="bg-[#2c2c2c] text-white ">1</div>
     </div>
   )
-
 }
 
 export default Home;
