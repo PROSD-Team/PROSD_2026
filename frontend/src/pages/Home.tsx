@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useApi } from '../hooks/useAPI'
 import { Store } from '../store/Store'
 import "../App.css";
+import { Header } from '../components/Header';
 
 const Home = () => {
   const { get } = useApi()
@@ -20,7 +21,9 @@ const Home = () => {
   if (error) return <div>Помилка: {error}</div>
 
   return (
+
     <div className='bg-[#2c2c2c] h-screen'>
+      <Header />
       <pre className='text-[#FFFFFF]'>{JSON.stringify(data, null, 2)}</pre>
     </div>
   )
