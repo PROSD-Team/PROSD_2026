@@ -64,6 +64,7 @@ builder.Services.AddSingleton<IMinioClient>(sp =>
 // Services
 builder.Services.AddScoped<JobService>();
 builder.Services.AddScoped<StorageService>();
+builder.Services.AddHostedService<NotifyListenerService>();
 
 var app = builder.Build();
 
