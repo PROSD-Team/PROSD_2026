@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Minio;
 using PROSD.backend.net.Data;
+using PROSD.backend.net.Hubs;
 using PROSD.backend.net.Middleware;
 using PROSD.backend.net.Services;
 using System.Reflection;
@@ -24,13 +25,16 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 // Cache
 builder.Services.AddMemoryCache();
 
+builder.Services.AddSignalR();
+
 builder.Services.AddCors(Options =>
 {
     Options.AddPolicy("AlwaysSayYes", policy =>
     {
-        policy.AllowAnyOrigin()
+        policy.SetIsOriginAllowed(_ => true)
               .AllowAnyMethod()
-              .AllowAnyHeader();
+              .AllowAnyHeader()
+              .AllowCredentials();
     });
 }
 );
@@ -83,5 +87,7 @@ app.UseHttpsRedirection();
 app.UseAuthorization();
 
 app.MapControllers();
+
+app.MapHub<PipelineHub>("/hubs/pipeline");
 
 app.Run();
