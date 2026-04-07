@@ -50,7 +50,7 @@ public class PipelineController : ControllerBase
             targetWorker = job.TargetWorker,
             retryCount = job.RetryCount,
             createdAt = job.CreatedAt,
-            startedAt = job.StartedAt
+            startedAt = job.StartedAt,
         });
     }
 }
