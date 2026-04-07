@@ -24,6 +24,17 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 // Cache
 builder.Services.AddMemoryCache();
 
+builder.Services.AddCors(Options =>
+{
+    Options.AddPolicy("AlwaysSayYes", policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader();
+    });
+}
+);
+
 // MinIO client
 builder.Services.AddSingleton<IMinioClient>(sp =>
 {
@@ -54,6 +65,8 @@ var app = builder.Build();
 
 // Middleware
 app.UseMiddleware<ExceptionHandlingMiddleware>();
+
+app.UseCors("AlwaysSayYes");
 
 if (app.Environment.IsDevelopment())
 {
