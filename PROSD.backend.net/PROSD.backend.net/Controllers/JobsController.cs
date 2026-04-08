@@ -40,9 +40,9 @@ namespace PROSD.backend.net.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public IActionResult GetJobStatus(int id)
+        public async Task<IActionResult> GetJobStatus(int id)
         {
-            var job = _jobService.GetJobById(id);
+            var job = await _jobService.GetJobById(id);
 
             if (job == null)
             {
