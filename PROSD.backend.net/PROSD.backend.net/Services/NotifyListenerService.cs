@@ -67,7 +67,17 @@ public class NotifyListenerService : BackgroundService
                 return;
             }
 
-            var output = await storage.ReadOutputAsync(job.S3FolderPath!);
+            string output;
+            try
+            {
+                output = await storage.ReadOutputAsync(job.S3FolderPath!);
+            }
+            catch (Exception)
+            {
+                // Якщо файлу немає не зупиняємо процес а передаємо повідомлення про відсутність даних
+                _logger.LogWarning("Output file not found in MinIO for JobId {JobId}. Proceeding with fallback message.", job.Id);
+                output = "Файл результатів (output.json) не знайдено у сховищі.";
+            }
 
             if (!string.IsNullOrEmpty(job.ConnectionId))
             {
