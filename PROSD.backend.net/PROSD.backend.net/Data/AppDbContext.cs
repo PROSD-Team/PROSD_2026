@@ -10,5 +10,6 @@ namespace PROSD.backend.net.Data
         }
 
         public DbSet<Job> Jobs { get; set; }
+        public DbSet<AlgorithmMetadata> Algorithm { get; set; }
     }
 }
