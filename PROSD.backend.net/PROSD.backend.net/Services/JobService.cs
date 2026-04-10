@@ -91,7 +91,6 @@ namespace PROSD.backend.net.Services
 
             if (job != null)
             {
-                _cache.Set(cacheKey, job, TimeSpan.FromMinutes(5));
                 _logger.LogInformation("Job {JobId} saved to cache", id);
             }
             else
