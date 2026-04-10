@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using PROSD.backend.net.Data;
+using PROSD.backend.net.Models;
 
 namespace PROSD.backend.net.Controllers;
 
@@ -69,5 +70,48 @@ public class MetaController : ControllerBase
         _logger.LogInformation("[AlgorithmService] JSON schema for '{Algorithm}' successfully found and sent.", algorithm);
 
         return Content(algo.InputSchema, "application/json");
+    }
+
+    /// <summary>
+    /// Самореєстрація алгоритму/мікросервісу при його запуску НЕ ТРОГАТЬ БЛЯТЬ ФРОНТЕНДЕРАМ ЦЕ ЗВ'ЗОК МІЖ МІКРОСЕРВІСОМ І БЕКОМ 
+    /// Запит: POST /api/meta/register
+    /// </summary>
+    /// <param name="metadata">Метадані алгоритму для реєстрації</param>
+    /// <returns>Результат реєстрації алгоритму</returns>
+    [HttpPost("register")]
+    public async Task<IActionResult> RegisterAlgorithm([FromBody] AlgorithmMetadata metadata)
+    {
+        _logger.LogInformation("[AlgorithmService] Received registration request for '{Algorithm}' in '{Category}'", metadata.Name, metadata.Category);
+
+        // Шукаємо, чи алгоритм вже зареєстрований
+        var existingAlgo = await _dbContext.Algorithm
+            .FirstOrDefaultAsync(a => a.Category == metadata.Category && a.Name == metadata.Name);
+
+        if (existingAlgo != null)
+        {
+            // Оновлюємо існуючий (на випадок якщо схема чи опис змінилися)
+            existingAlgo.Description = metadata.Description;
+            existingAlgo.InputSchema = metadata.InputSchema;
+            existingAlgo.IsActive = metadata.IsActive;
+
+            _dbContext.Algorithm.Update(existingAlgo);
+            _logger.LogInformation("Updated metadata for '{Algorithm}'", metadata.Name);
+        }
+        else
+        {
+            // Реєструємо новий
+            // Якщо Id приходить порожнім з воркера, генеруємо новий
+            if (string.IsNullOrEmpty(metadata.Id))
+            {
+                metadata.Id = Guid.NewGuid().ToString();
+            }
+
+            await _dbContext.Algorithm.AddAsync(metadata);
+            _logger.LogInformation("Registered new algorithm '{Algorithm}'", metadata.Name);
+        }
+
+        await _dbContext.SaveChangesAsync();
+
+        return Ok(new { message = "Алгоритм успішно зареєстровано", id = metadata.Id ?? existingAlgo?.Id });
     }
 }

@@ -2,10 +2,14 @@
 using Npgsql;
 using PROSD.backend.net.Hubs;
 using PROSD.backend.net.Data;
+using PROSD.backend.net.Models;
 
 namespace PROSD.backend.net.Services;
 
-// Цей сервіс прослуховує події PostgreSQL NOTIFY на каналі "job_completed"
+/// <summary>
+/// Фоновий сервіс, який прослуховує події PostgreSQL (NOTIFY) 
+/// та сповіщає клієнтів через SignalR про завершення конвеєра.
+/// </summary>
 public class NotifyListenerService : BackgroundService
 {
     private readonly IHubContext<PipelineHub> _hub;
@@ -17,7 +21,7 @@ public class NotifyListenerService : BackgroundService
         IHubContext<PipelineHub> hub,
         IServiceScopeFactory scopeFactory,
         IConfiguration config,
-        ILogger<NotifyListenerService> logger) 
+        ILogger<NotifyListenerService> logger)
     {
         _hub = hub;
         _scopeFactory = scopeFactory;
@@ -25,7 +29,6 @@ public class NotifyListenerService : BackgroundService
         _logger = logger;
     }
 
-    // Цей метод працює у фоновому режимі та прослуховує події PostgreSQL NOTIFY
     protected override async Task ExecuteAsync(CancellationToken ct)
     {
         await using var conn = new NpgsqlConnection(_connString);
@@ -33,19 +36,19 @@ public class NotifyListenerService : BackgroundService
 
         conn.Notification += async (_, e) => await HandleNotify(e.Payload, ct);
 
+        // Підписуємося на канал "job_completed", який викликається тригером у PostgreSQL
         await using var cmd = new NpgsqlCommand("LISTEN job_completed;", conn);
         await cmd.ExecuteNonQueryAsync(ct);
 
         _logger.LogInformation("Listening for PostgreSQL NOTIFY on channel: job_completed");
 
+        // Тримаємо підключення відкритим
         while (!ct.IsCancellationRequested)
         {
             await conn.WaitAsync(ct);
         }
     }
 
-    // Цей метод викликається коли отримується подія NOTIFY він отримує ідентифікатор завдання з корисного навантаження
-    // отримує деталі завдання з бази даних зчитує вивід зі сховища та надсилає сповіщення клієнту через SignalR
     private async Task HandleNotify(string jobIdStr, CancellationToken ct)
     {
         if (string.IsNullOrEmpty(jobIdStr) || !int.TryParse(jobIdStr, out var jobId))
@@ -67,34 +70,55 @@ public class NotifyListenerService : BackgroundService
                 return;
             }
 
-            string output;
-            try
+            // --- АРХІТЕКТУРА ROUTING SLIP ---
+            // Gateway більше не керує кроками. Ми реагуємо ТІЛЬКИ на фінальні статуси.
+            // Проміжні статуси (наприклад, перехід між мікросервісами) ігноруються.
+            if (job.Status == "completed" || job.Status == "failed")
             {
-                output = await storage.ReadOutputAsync(job.S3FolderPath!);
+                _logger.LogInformation("Job {JobId} finished with status '{Status}'. Notifying client.", job.Id, job.Status);
+                await SendToClientAsync(job, storage, ct);
             }
-            catch (Exception)
+            else
             {
-                // Якщо файлу немає не зупиняємо процес а передаємо повідомлення про відсутність даних
-                _logger.LogWarning("Output file not found in MinIO for JobId {JobId}. Proceeding with fallback message.", job.Id);
-                output = "Файл результатів (output.json) не знайдено у сховищі.";
-            }
-
-            if (!string.IsNullOrEmpty(job.ConnectionId))
-            {
-                await _hub.Clients.Client(job.ConnectionId)
-                    .SendAsync("JobCompleted", new
-                    {
-                        jobId = job.Id,
-                        status = job.Status,
-                        output = output
-                    }, ct);
-
-                _logger.LogInformation("Sent JobCompleted for JobId {JobId} to client {ConnectionId}", job.Id, job.ConnectionId);
+                // Опційне логування для відстеження конвеєра в консолі бекенду
+                _logger.LogInformation("Job {JobId} is at intermediate status '{Status}' (Step {CurrentStep}). Waiting for pipeline to finish.", job.Id, job.Status, job.CurrentStepIndex);
             }
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error processing NOTIFY for JobId {JobId}", jobId);
         }
+    }
+
+    private async Task SendToClientAsync(Job job, StorageService storage, CancellationToken ct)
+    {
+        // Якщо клієнт не підключений через WebSocket (наприклад, зробив запит через Swagger), просто виходимо
+        if (string.IsNullOrEmpty(job.ConnectionId))
+        {
+            return;
+        }
+
+        string output = string.Empty;
+        try
+        {
+            // Зчитуємо фінальний результат з MinIO (output.json)
+            output = await storage.ReadOutputAsync(job.S3FolderPath!);
+        }
+        catch (Exception)
+        {
+            _logger.LogWarning("Output file not found in MinIO for JobId {JobId}. Proceeding with fallback message.", job.Id);
+            output = "Файл результатів (output.json) не знайдено у сховищі.";
+        }
+
+        // Відправляємо дані конкретному клієнту
+        await _hub.Clients.Client(job.ConnectionId)
+            .SendAsync("JobCompleted", new
+            {
+                jobId = job.Id,
+                status = job.Status,
+                output = output
+            }, ct);
+
+        _logger.LogInformation("Sent SignalR update for JobId {JobId} to client {ConnectionId}", job.Id, job.ConnectionId);
     }
 }
