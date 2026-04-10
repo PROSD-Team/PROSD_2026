@@ -30,13 +30,26 @@ public class MetaController : ControllerBase
     {
         _logger.LogInformation("[AlgorithmService] Fetching categories and algorithms");
 
-        var categories = await _dbContext.Algorithm
-            .Where(a => a.IsActive)
+        var query = _dbContext.Algorithm.Where(a => a.IsActive);
+
+        // Якщо передано параметр category, фільтруємо за ним
+        if (!string.IsNullOrEmpty(category))
+        {
+            query = query.Where(a => a.Category == category);
+        }
+
+        var categories = await query
             .GroupBy(a => a.Category)
             .Select(g => new
             {
                 category = g.Key,
-                algorithms = g.Select(a => new { id = a.Id, name = a.Name, description = a.Description })
+                algorithms = g.Select(a => new
+                {
+                    id = a.Id,
+                    name = a.Name,
+                    description = a.Description,
+                    category = a.Category 
+                })
             })
             .ToListAsync();
 
@@ -75,7 +88,7 @@ public class MetaController : ControllerBase
     /// <summary>
     /// Самореєстрація алгоритму/мікросервісу при його запуску НЕ ТРОГАТЬ БЛЯТЬ ФРОНТЕНДЕРАМ ЦЕ ЗВ'ЗОК МІЖ МІКРОСЕРВІСОМ І БЕКОМ 
     /// Запит: POST /api/meta/register
-    /// </summary>
+    /// </summary>св
     /// <param name="metadata">Метадані алгоритму для реєстрації</param>
     /// <returns>Результат реєстрації алгоритму</returns>
     [HttpPost("register")]
