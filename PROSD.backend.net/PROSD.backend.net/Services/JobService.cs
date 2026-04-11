@@ -74,21 +74,23 @@ namespace PROSD.backend.net.Services
             }
         }
 
-        public Job? GetJobById(int id)
+        public async Task<Job?> GetJobById(int id)
         {
             string cacheKey = $"job_{id}";
-
             if (_cache.TryGetValue(cacheKey, out Job? cachedJob))
             {
                 _logger.LogInformation("Job {JobId} returned from cache", id);
                 return cachedJob;
             }
 
-            var job = _context.Jobs.Find(id);
+            // ТУТ ЗМІНА: FindAsync замість Find під час декількох запитів. якщо буде синхроні запити до бд то
+            // ми втрачаємо сенс оборобляти запити від веб серверу асинхроно бо потоки будуть вставати в чергу
+            // на доступ до бд і чекати поки інший потік звільнить доступ до бд. FindAsync дозволяє не блокувати
+            // потоки а відпускати їх для обробки інших запитів, поки вони чекають на результат від бд 
+            var job = await _context.Jobs.FindAsync(id);
 
             if (job != null)
             {
-                _cache.Set(cacheKey, job, TimeSpan.FromMinutes(5));
                 _logger.LogInformation("Job {JobId} saved to cache", id);
             }
             else

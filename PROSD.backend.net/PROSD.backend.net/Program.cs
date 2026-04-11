@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Minio;
 using PROSD.backend.net.Data;
+using PROSD.backend.net.Hubs;
 using PROSD.backend.net.Middleware;
 using PROSD.backend.net.Services;
 using System.Reflection;
@@ -23,6 +24,20 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 // Cache
 builder.Services.AddMemoryCache();
+
+builder.Services.AddSignalR();
+
+builder.Services.AddCors(Options =>
+{
+    Options.AddPolicy("AlwaysSayYes", policy =>
+    {
+        policy.SetIsOriginAllowed(_ => true)
+              .AllowAnyMethod()
+              .AllowAnyHeader()
+              .AllowCredentials();
+    });
+}
+);
 
 // MinIO client
 builder.Services.AddSingleton<IMinioClient>(sp =>
@@ -49,11 +64,20 @@ builder.Services.AddSingleton<IMinioClient>(sp =>
 // Services
 builder.Services.AddScoped<JobService>();
 builder.Services.AddScoped<StorageService>();
+builder.Services.AddHostedService<NotifyListenerService>();
 
 var app = builder.Build();
 
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    dbContext.Database.Migrate();
+}
+
 // Middleware
 app.UseMiddleware<ExceptionHandlingMiddleware>();
+
+app.UseCors("AlwaysSayYes");
 
 if (app.Environment.IsDevelopment())
 {
@@ -70,5 +94,7 @@ app.UseHttpsRedirection();
 app.UseAuthorization();
 
 app.MapControllers();
+
+app.MapHub<PipelineHub>("/hubs/pipeline");
 
 app.Run();

@@ -80,5 +80,31 @@ namespace PROSD.backend.net.Services
 
             _logger.LogInformation("Config saved to MinIO: {ObjectName}", objectName);
         }
+
+        public async Task<string> ReadOutputAsync(string folderPath)
+        {
+            var objectName = $"{folderPath}/output.json";
+            var result = new StringBuilder();
+
+            try
+            {
+                var getObjectArgs = new GetObjectArgs()
+                    .WithBucket(_bucketName)
+                    .WithObject(objectName)
+                    .WithCallbackStream(stream =>
+                    {
+                        using var reader = new StreamReader(stream);
+                        result.Append(reader.ReadToEnd());
+                    });
+
+                await _minioClient.GetObjectAsync(getObjectArgs);
+                return result.ToString();
+            }
+            catch (Exception ex) 
+            { 
+                _logger.LogError(ex, "Error reading output from MinIO: {ObjectName}", objectName);
+                throw new InvalidOperationException($"Failed to read output from storage for object '{objectName}'.", ex);
+            }
+        }
     }
 }

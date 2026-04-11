@@ -3,8 +3,10 @@ import { logger } from '../lib/logger'
 import { cache } from '../lib/cache'
 
 const api = axios.create({
-    baseURL: 'https://jsonplaceholder.typicode.com',
+    baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8080',
+    withCredentials: true
 })
+
 
 api.interceptors.request.use((config) => {
     logger.info(`Request: ${config.method?.toUpperCase()} ${config.url}`)
