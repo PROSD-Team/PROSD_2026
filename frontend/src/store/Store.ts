@@ -1,23 +1,58 @@
 import { create } from 'zustand'
 
-interface CounterState {
-    count: number
-    isLoading: boolean
-    error: string | null
-    increment: () => void
-    decrement: () => void
-    reset: () => void
-    setLoading: (loading: boolean) => void
-    setError: (error: string | null) => void
+export interface PipelineStep {
+    id: string
+    algorithmName: string
+    category: string
+    parametersJson: string
 }
 
-export const Store = create<CounterState>((set) => ({
-    count: 0,
+interface AppState {
+    isLoading: boolean
+    error: string | null
+    setLoading: (loading: boolean) => void
+    setError: (error: string | null) => void
+
+    // Pipeline
+    steps: PipelineStep[]
+    selectedStepId: string | null
+    jobResult: string | null
+    jobStatus: string | null
+
+    addStep: (step: PipelineStep) => void
+    removeStep: (id: string) => void
+    moveStep: (from: number, to: number) => void
+    selectStep: (id: string | null) => void
+    updateStepParams: (id: string, parametersJson: string) => void
+    setJobResult: (result: string | null) => void
+    setJobStatus: (status: string | null) => void
+    clearPipeline: () => void
+}
+
+export const Store = create<AppState>((set) => ({
     isLoading: false,
     error: null,
-    increment: () => set((state) => ({ count: state.count + 1 })),
-    decrement: () => set((state) => ({ count: state.count - 1 })),
-    reset: () => set({ count: 0 }),
     setLoading: (loading) => set({ isLoading: loading }),
     setError: (error) => set({ error }),
+
+    steps: [],
+    selectedStepId: null,
+    jobResult: null,
+    jobStatus: null,
+
+    addStep: (step) => set((s) => ({ steps: [...s.steps, step] })),
+    removeStep: (id) => set((s) => ({ steps: s.steps.filter(x => x.id !== id) })),
+    moveStep: (from, to) => set((s) => {
+        const steps = [...s.steps]
+        const [item] = steps.splice(from, 1)
+        steps.splice(to, 0, item)
+        return { steps }
+    }),
+    selectStep: (id) => set({ selectedStepId: id }),
+    updateStepParams: (id, parametersJson) => set((s) => ({
+        steps: s.steps.map(x => x.id === id ? { ...x, parametersJson } : x)
+    })),
+    setJobResult: (result) => set({ jobResult: result }),
+    setJobStatus: (status) => set({ jobStatus: status }),
+    clearPipeline: () => set({ steps: [], selectedStepId: null, jobResult: null, jobStatus: null }),
 }))

@@ -1,15 +1,17 @@
 import React, { useEffect, useState } from "react"
 import { useApi } from "../hooks/useAPI"
 import { Store } from "../store/Store"
+import { v4 as uuidv4 } from 'uuid'
 
 interface Algorithm {
     name: string
     description: string
+    category: string
 }
 
 export const Algorithms: React.FC = () => {
     const { get } = useApi()
-    const { isLoading, error } = Store()
+    const { isLoading, error, addStep } = Store()
 
     const [data, setData] = useState<Algorithm[]>([])
     const [search, setSearch] = useState("")
@@ -17,14 +19,13 @@ export const Algorithms: React.FC = () => {
     useEffect(() => {
         const fetchData = async () => {
             const result = await get("/api/Meta/algorithms")
-
-
             if (result) {
-                const flat = (result as any[]).flatMap(cat => cat.algorithms)
+                const flat = (result as any[]).flatMap(cat =>
+                    cat.algorithms.map((a: any) => ({ ...a, category: cat.category }))
+                )
                 setData(flat)
             }
         }
-
         fetchData()
     }, [])
 
@@ -33,8 +34,12 @@ export const Algorithms: React.FC = () => {
     )
 
     const handleAdd = (algorithm: Algorithm) => {
-        console.log("ADD:", algorithm)
-
+        addStep({
+            id: uuidv4(),
+            algorithmName: algorithm.name,
+            category: algorithm.category,
+            parametersJson: '{}',
+        })
     }
 
     if (isLoading) return <div className="text-white p-4">Завантаження...</div>
@@ -42,11 +47,8 @@ export const Algorithms: React.FC = () => {
 
     return (
         <div className="bg-[#3a3a3a] text-white border-t border-[#555] h-screen overflow-y-auto">
-
-
-            <div className="flex flex-col  p-2">
+            <div className="flex flex-col p-2">
                 <div className="text-1xl mb-2">Algorithms</div>
-
                 <input
                     type="text"
                     placeholder="Search algorithm"
@@ -56,15 +58,17 @@ export const Algorithms: React.FC = () => {
                 />
             </div>
 
-
             {filtered.map(algorithm => (
                 <div
                     key={algorithm.name}
                     className="flex justify-between items-center px-3 py-2 hover:bg-[#555] cursor-pointer"
                 >
-                    <span>{algorithm.name}</span>
-
-
+                    <div className="flex flex-col">
+                        <span className="text-sm">{algorithm.name}</span>
+                        {algorithm.description && (
+                            <span className="text-xs text-[#888]">{algorithm.description}</span>
+                        )}
+                    </div>
                     <button
                         onClick={() => handleAdd(algorithm)}
                         className="text-lg px-2 hover:text-green-400"
