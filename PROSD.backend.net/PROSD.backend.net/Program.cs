@@ -1,10 +1,15 @@
+using Microsoft.EntityFrameworkCore;
+using Minio;
+using PROSD.backend.net.Data;
+using PROSD.backend.net.Hubs;
+using PROSD.backend.net.Middleware;
+using PROSD.backend.net.Services;
 using System.Reflection;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Controllers + Swagger
 builder.Services.AddControllers();
-
-builder.Services.AddOpenApi();
 builder.Services.AddEndpointsApiExplorer();
 
 builder.Services.AddSwaggerGen(options =>
@@ -13,40 +18,83 @@ builder.Services.AddSwaggerGen(options =>
     options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, xmlFilename));
 });
 
+// PostgreSQL
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-builder.Services.AddCors(options =>
+// Cache
+builder.Services.AddMemoryCache();
+
+builder.Services.AddSignalR();
+
+builder.Services.AddCors(Options =>
 {
-    options.AddPolicy("AllowFrontend",
-        policy =>
-        {
-            policy.WithOrigins("http://localhost:5173")
-                  .AllowAnyHeader()
-                  .AllowAnyMethod();
-        });
+    Options.AddPolicy("AlwaysSayYes", policy =>
+    {
+        policy.SetIsOriginAllowed(_ => true)
+              .AllowAnyMethod()
+              .AllowAnyHeader()
+              .AllowCredentials();
+    });
+}
+);
+
+// MinIO client
+builder.Services.AddSingleton<IMinioClient>(sp =>
+{
+    var configuration = sp.GetRequiredService<IConfiguration>();
+
+    var endpoint = configuration["Minio:Endpoint"];
+    var accessKey = configuration["Minio:AccessKey"];
+    var secretKey = configuration["Minio:SecretKey"];
+    var useSsl = configuration.GetValue<bool>("Minio:UseSSL");
+
+    var client = new MinioClient()
+        .WithEndpoint(endpoint)
+        .WithCredentials(accessKey, secretKey);
+
+    if (useSsl)
+    {
+        client = client.WithSSL();
+    }
+
+    return client.Build();
 });
-builder.Services.AddControllers();
+
+// Services
+builder.Services.AddScoped<JobService>();
+builder.Services.AddScoped<StorageService>();
+builder.Services.AddHostedService<NotifyListenerService>();
 
 var app = builder.Build();
 
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    dbContext.Database.Migrate();
+}
+
+// Middleware
+app.UseMiddleware<ExceptionHandlingMiddleware>();
+
+app.UseCors("AlwaysSayYes");
+
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
     app.UseSwagger();
     app.UseSwaggerUI(options =>
     {
         options.SwaggerEndpoint("/swagger/v1/swagger.json", "v1");
         options.RoutePrefix = string.Empty;
-        options.RoutePrefix = string.Empty; // Swagger буде відкриватися відразу за адресою http://localhost:PORT/
     });
 }
-
-
-app.UseCors("AllowFrontend");
 
 app.UseHttpsRedirection();
 
 app.UseAuthorization();
 
 app.MapControllers();
+
+app.MapHub<PipelineHub>("/hubs/pipeline");
 
 app.Run();

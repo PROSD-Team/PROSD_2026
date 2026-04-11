@@ -1,0 +1,131 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: prosd_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password123
+      POSTGRES_DB: prosd_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  minio:
+    image: minio/minio
+    container_name: prosd_minio
+    restart: always
+    environment:
+      MINIO_ROOT_USER: admin
+      MINIO_ROOT_PASSWORD: password123
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000" 
+      - "9001:9001" 
+    volumes:
+      - minio_data:/data
+
+  backend:
+    image: prosd_backend
+    container_name: prosd_backend
+    build:
+      context: ./PROSD.backend.net
+      dockerfile: PROSD.backend.net/Dockerfile 
+    restart: always
+    ports:
+      - "8080:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_HTTP_PORTS=8080
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=prosd_db;Username=admin;Password=password123;
+      - Minio__Endpoint=minio:9000
+      - Minio__AccessKey=admin
+      - Minio__SecretKey=password123
+      - Minio__UseSSL=false
+    depends_on:
+      - postgres
+      - minio
+
+  worker-math:
+    build:
+      context: ./PROSD.Workers/Worker_1
+    container_name: prosd_worker_math
+    restart: always
+    environment:
+      - GATEWAY_META_URL=http://backend:8080/api/meta/register
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=prosd_db
+      - DB_USER=admin
+      - DB_PASSWORD=password123
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=admin
+      - MINIO_SECRET_KEY=password123
+    depends_on:
+      - postgres
+      - minio
+      - backend
+
+  worker-analyzer:
+    build:
+      context: ./PROSD.Workers/Worker_2
+    container_name: prosd_worker_analyzer
+    restart: always
+    environment:
+      - GATEWAY_META_URL=http://backend:8080/api/meta/register
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=prosd_db
+      - DB_USER=admin
+      - DB_PASSWORD=password123
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=admin
+      - MINIO_SECRET_KEY=password123
+    depends_on:
+      - postgres
+      - minio
+      - backend
+
+  worker-profiler:
+    build:
+      context: ./PROSD.Workers/Worker_3
+    container_name: prosd_worker_profiler
+    restart: always
+    environment:
+      - GATEWAY_META_URL=http://backend:8080/api/meta/register
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=prosd_db
+      - DB_USER=admin
+      - DB_PASSWORD=password123
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=admin
+      - MINIO_SECRET_KEY=password123
+    depends_on:
+      - postgres
+      - minio
+      - backend
+
+  worker-generator:
+    build:
+      context: ./PROSD.Workers/Worker_4
+    container_name: prosd_worker_generator
+    restart: always
+    environment:
+      - GATEWAY_META_URL=http://backend:8080/api/meta/register
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=prosd_db
+      - DB_USER=admin
+      - DB_PASSWORD=password123
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=admin
+      - MINIO_SECRET_KEY=password123
+    depends_on:
+      - postgres
+      - minio
+      - backend
+volumes:
+  postgres_data:
+  minio_data:
