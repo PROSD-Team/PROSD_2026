@@ -1,194 +1,376 @@
-version: '3.8'
-
 services:
+  # ============================================================================
+  # CORE INFRASTRUCTURE
+  # ============================================================================
   postgres:
     image: postgres:15-alpine
     container_name: prosd_postgres
-    restart: always
     environment:
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_DB: prosd_db
-    ports:
-      - "5433:5432"
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - internal-net
+    ports:
+      - "${DB_PORT}:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d prosd_db"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 30s
+    restart: unless-stopped
 
   minio:
-    image: minio/minio
+    image: minio/minio:latest
     container_name: prosd_minio
-    restart: always
-    environment:
-      MINIO_ROOT_USER: ${MINIO_USER}
-      MINIO_ROOT_PASSWORD: ${MINIO_PASSWORD}
     command: server /data --console-address ":9001"
-    ports:
-      - "9000:9000" 
-      - "9001:9001" 
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
     volumes:
       - minio_data:/data
+    networks:
+      - internal-net
+      - public-net
+    ports:
+      - "9000:9000"
+      - "${MINIO_CONSOLE_PORT}:9001"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+  # ============================================================================
+  # OBSERVABILITY – LOGGING
+  # ============================================================================
+  loki:
+    image: grafana/loki:2.8.2
+    container_name: prosd_loki
+    command: -config.file=/etc/loki/local-config.yaml
+    volumes:
+      - ./observability/loki-config.yaml:/etc/loki/local-config.yaml:ro
+      - loki_data:/loki
+    networks:
+      - internal-net
+    ports:
+      - "${LOKI_PORT}:3100"
+    restart: unless-stopped
+    profiles:
+      - logging
+      - observability
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3100/ready"]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 30s
 
+  # ============================================================================
+  # OBSERVABILITY – METRICS
+  # ============================================================================
+  prometheus:
+    image: prom/prometheus:v2.47.0
+    container_name: prosd_prometheus
+    volumes:
+      - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./observability/prosd.alerts.yml:/etc/prometheus/prosd.alerts.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.enable-lifecycle'
+    networks:
+      - internal-net
+    ports:
+      - "${PROMETHEUS_PORT}:9090"
+    restart: unless-stopped
+    profiles:
+      - metrics
+      - observability
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.51.0
+    container_name: prosd_cadvisor
+    privileged: true
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    networks:
+      - internal-net
+    ports:
+      - "8081:8080"
+    restart: unless-stopped
+    profiles:
+      - metrics
+      - observability
+
+  postgres_exporter:
+    image: prometheuscommunity/postgres-exporter:v0.14.0
+    container_name: prosd_pg_exporter
+    environment:
+      DATA_SOURCE_NAME: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable"
+    networks:
+      - internal-net
+    ports:
+      - "9187:9187"
+    restart: unless-stopped
+    profiles:
+      - metrics
+      - observability
+
+  # ============================================================================
+  # OBSERVABILITY – ALERTING
+  # ============================================================================
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: prosd_alertmanager
+    restart: unless-stopped
+    volumes:
+      - ./observability/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+    networks:
+      - internal-net
+    ports:
+      - "9093:9093"
+    profiles:
+      - observability
+
+  prometheus-msteams:
+    image: quay.io/prometheusmsteams/prometheus-msteams:latest
+    container_name: prosd_msteams
+    restart: unless-stopped
+    environment:
+      - TEAMS_INCOMING_WEBHOOK_URL=${TEAMS_WEBHOOK_URL}
+      - TEAMS_REQUEST_URI=alertmanager
+    networks:
+      - internal-net
+      - public-net
+    ports:
+      - "2000:2000"
+    profiles:
+      - observability
+
+  # ============================================================================
+  # OBSERVABILITY – VISUALISATION
+  # ============================================================================
+  grafana:
+    image: grafana/grafana:9.0.0
+    container_name: prosd_grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
+      - GF_AUTH_ANONYMOUS_ENABLED=false
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./observability/grafana-dashboards:/var/lib/grafana/dashboards:ro
+    networks:
+      - internal-net
+      - public-net
+    ports:
+      - "${GRAFANA_PORT}:3000"
+    depends_on:
+      prometheus:
+        condition: service_started
+      loki:
+        condition: service_healthy
+    restart: unless-stopped
+    profiles:
+      - observability
+
+  # ============================================================================
+  # APPLICATION SERVICES
+  # ============================================================================
   backend:
-    image: prosd_backend
-    container_name: prosd_backend
     build:
       context: ./PROSD.backend.net
       dockerfile: PROSD.backend.net/Dockerfile
-    ports:
-      - "8080:8080"
+    container_name: prosd_backend
     environment:
-      - ASPNETCORE_ENVIRONMENT=Development
-      - ASPNETCORE_HTTP_PORTS=8080
-      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=prosd_db;Username=${DB_USER};Password=${DB_PASSWORD};
+      - ASPNETCORE_ENVIRONMENT=${ENVIRONMENT}
+      - ASPNETCORE_URLS=http://+:80
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
       - Minio__Endpoint=minio:9000
-      - Minio__AccessKey=${MINIO_USER}
-      - Minio__SecretKey=${MINIO_PASSWORD}
+      - Minio__AccessKey=${MINIO_ROOT_USER}
+      - Minio__SecretKey=${MINIO_ROOT_PASSWORD}
       - Minio__UseSSL=false
+      - LOKI_URL=http://loki:3100
+      - ENABLE_METRICS=${ENABLE_METRICS}
+      - ENABLE_LOGGING=${ENABLE_LOGGING}
+    networks:
+      - internal-net
+      - public-net
+    ports:
+      - "${BACKEND_PORT}:80"
     depends_on:
       postgres:
         condition: service_healthy
       minio:
-        condition: service_healthy
+        condition: service_started
     healthcheck:
-      test: ["CMD-SHELL", "ps aux | grep '[d]otnet' || exit 1"]
-      interval: 10s
-      timeout: 5s
+      test: ["CMD", "curl", "-f", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 10s
       retries: 3
+      start_period: 40s
+    restart: unless-stopped
 
   frontend:
     build:
       context: ./frontend
-      dockerfile: dockerfile
+      dockerfile: Dockerfile
     container_name: prosd_frontend
-    restart: always
     ports:
-      - "80:80"
+      - "${FRONTEND_PORT}:80"
+    networks:
+      - public-net
     depends_on:
       backend:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    restart: unless-stopped
 
   worker-math:
     build:
       context: ./PROSD.Workers/Worker_1
     container_name: prosd_worker_math
-    restart: always
     environment:
-      - GATEWAY_META_URL=http://backend:8080/api/meta/register
+      - GATEWAY_META_URL=http://backend:80/api/meta/register
       - DB_HOST=postgres
       - DB_PORT=5432
-      - DB_NAME=prosd_db
-      - DB_USER=${DB_USER}
-      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=${POSTGRES_DB}
+      - DB_USER=${POSTGRES_USER}
+      - DB_PASSWORD=${POSTGRES_PASSWORD}
       - MINIO_ENDPOINT=minio:9000
-      - MINIO_ACCESS_KEY=${MINIO_USER}
-      - MINIO_SECRET_KEY=${MINIO_PASSWORD}
+      - MINIO_ACCESS_KEY=${MINIO_ROOT_USER}
+      - MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD}
+      - LOKI_URL=http://loki:3100
+      - ENABLE_METRICS=${ENABLE_METRICS}
+      - ENABLE_LOGGING=${ENABLE_LOGGING}
+    networks:
+      - internal-net
     depends_on:
       postgres:
         condition: service_healthy
       minio:
-        condition: service_healthy
+        condition: service_started
       backend:
         condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "ps aux | grep '[p]ython main.py' || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+    restart: unless-stopped
 
   worker-analyzer:
     build:
       context: ./PROSD.Workers/Worker_2
     container_name: prosd_worker_analyzer
-    restart: always
     environment:
-      - GATEWAY_META_URL=http://backend:8080/api/meta/register
+      - GATEWAY_META_URL=http://backend:80/api/meta/register
       - DB_HOST=postgres
       - DB_PORT=5432
-      - DB_NAME=prosd_db
-      - DB_USER=${DB_USER}
-      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=${POSTGRES_DB}
+      - DB_USER=${POSTGRES_USER}
+      - DB_PASSWORD=${POSTGRES_PASSWORD}
       - MINIO_ENDPOINT=minio:9000
-      - MINIO_ACCESS_KEY=${MINIO_USER}
-      - MINIO_SECRET_KEY=${MINIO_PASSWORD}
+      - MINIO_ACCESS_KEY=${MINIO_ROOT_USER}
+      - MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD}
+      - LOKI_URL=http://loki:3100
+      - ENABLE_METRICS=${ENABLE_METRICS}
+      - ENABLE_LOGGING=${ENABLE_LOGGING}
+    networks:
+      - internal-net
     depends_on:
       postgres:
         condition: service_healthy
       minio:
-        condition: service_healthy
+        condition: service_started
       backend:
         condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "ps aux | grep '[p]ython main.py' || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+    restart: unless-stopped
 
   worker-profiler:
     build:
       context: ./PROSD.Workers/Worker_3
     container_name: prosd_worker_profiler
-    restart: always
     environment:
-      - GATEWAY_META_URL=http://backend:8080/api/meta/register
+      - GATEWAY_META_URL=http://backend:80/api/meta/register
       - DB_HOST=postgres
       - DB_PORT=5432
-      - DB_NAME=prosd_db
-      - DB_USER=${DB_USER}
-      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=${POSTGRES_DB}
+      - DB_USER=${POSTGRES_USER}
+      - DB_PASSWORD=${POSTGRES_PASSWORD}
       - MINIO_ENDPOINT=minio:9000
-      - MINIO_ACCESS_KEY=${MINIO_USER}
-      - MINIO_SECRET_KEY=${MINIO_PASSWORD}
+      - MINIO_ACCESS_KEY=${MINIO_ROOT_USER}
+      - MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD}
+      - LOKI_URL=http://loki:3100
+      - ENABLE_METRICS=${ENABLE_METRICS}
+      - ENABLE_LOGGING=${ENABLE_LOGGING}
+    networks:
+      - internal-net
     depends_on:
       postgres:
         condition: service_healthy
       minio:
-        condition: service_healthy
+        condition: service_started
       backend:
         condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "ps aux | grep '[p]ython main.py' || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+    restart: unless-stopped
 
   worker-generator:
     build:
       context: ./PROSD.Workers/Worker_4
     container_name: prosd_worker_generator
-    restart: always
     environment:
-      - GATEWAY_META_URL=http://backend:8080/api/meta/register
+      - GATEWAY_META_URL=http://backend:80/api/meta/register
       - DB_HOST=postgres
       - DB_PORT=5432
-      - DB_NAME=prosd_db
-      - DB_USER=${DB_USER}
-      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=${POSTGRES_DB}
+      - DB_USER=${POSTGRES_USER}
+      - DB_PASSWORD=${POSTGRES_PASSWORD}
       - MINIO_ENDPOINT=minio:9000
-      - MINIO_ACCESS_KEY=${MINIO_USER}
-      - MINIO_SECRET_KEY=${MINIO_PASSWORD}
+      - MINIO_ACCESS_KEY=${MINIO_ROOT_USER}
+      - MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD}
+      - LOKI_URL=http://loki:3100
+      - ENABLE_METRICS=${ENABLE_METRICS}
+      - ENABLE_LOGGING=${ENABLE_LOGGING}
+    networks:
+      - internal-net
     depends_on:
       postgres:
         condition: service_healthy
       minio:
-        condition: service_healthy
+        condition: service_started
       backend:
         condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "ps aux | grep '[p]ython main.py' || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+    restart: unless-stopped
+
+networks:
+  public-net:
+    driver: bridge
+    name: prosd-public
+  internal-net:
+    driver: bridge
+    name: prosd-internal
+    internal: true
 
 volumes:
   postgres_data:
   minio_data:
+  loki_data:
+  prometheus_data:
+  grafana_data:
+  

@@ -20,4 +20,11 @@ RUN dotnet publish "./PROSD.backend.net.csproj" -c $BUILD_CONFIGURATION -o /app/
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
+
+USER root
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+USER $APP_UID
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 CMD curl -f http://localhost:80/health || exit 1
+
 ENTRYPOINT ["dotnet", "PROSD.backend.net.dll"]

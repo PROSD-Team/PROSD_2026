@@ -26,16 +26,21 @@ dist-ssr
 *.sln
 *.sw?
 .venv
-.env
 
 .vs/
 *.user
 *.suo
 *.slnx.sqlite
-*.slnx
 
 [Bb]in/
 [Oo]bj/
 
 *.cache
 *.log
+
+
+.env.local
+
+certs/
+certbot/certs/
+certbot/

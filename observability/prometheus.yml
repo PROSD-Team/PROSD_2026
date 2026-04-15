@@ -1,0 +1,59 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'prosd'
+    environment: 'development'
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ['alertmanager:9093']
+
+rule_files:
+  - "prosd.alerts.yml"
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+    scrape_timeout: 10s
+
+  - job_name: 'backend'
+    static_configs:
+      - targets: ['backend:80']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+    scrape_timeout: 8s
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: 'dotnet_.*|aspnetcore_.*|kestrel_.*|http_server_.*|http_client_.*|process_.*|runtime_.*|request_.*|response_.*|grpc_.*'
+        action: keep
+      - source_labels: [__name__]
+        regex: 'go_.*|promhttp_.*'
+        action: drop
+
+  - job_name: 'workers'
+    static_configs:
+      - targets:
+          - 'worker-math:8000'
+          - 'worker-analyzer:8000'
+          - 'worker-profiler:8000'
+          - 'worker-generator:8000'
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+    scrape_timeout: 25s
+
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['cadvisor:8080']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+    scrape_timeout: 25s
+
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['postgres_exporter:9187']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+    scrape_timeout: 25s

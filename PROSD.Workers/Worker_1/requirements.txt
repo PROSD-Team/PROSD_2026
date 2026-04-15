@@ -2,3 +2,5 @@ requests
 psycopg2-binary
 minio
 pyyaml
+prometheus-client
+python-logging-loki

@@ -1,0 +1,32 @@
+groups:
+  - name: prosd_alerts
+    rules:
+      # Alert for any Prometheus target being down
+      - alert: ServiceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Service {{ $labels.job }} is down"
+          description: "The service {{ $labels.job }} (instance: {{ $labels.instance }}) has been down for more than 1 minute."
+
+      # Alert when any PROSD container disappears from metrics
+      - alert: ContainerDown
+        expr: absent(container_tasks_state{name=~"prosd_.+"})
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Container missing from metrics"
+          description: "A PROSD container (likely {{ $labels.name }}) is no longer visible in cAdvisor metrics."
+
+      # Alert if backend metrics endpoint is unreachable
+      - alert: BackendDown
+        expr: up{job="backend"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Backend service is down"
+          description: "Prometheus cannot scrape metrics from the backend service."

@@ -3,10 +3,11 @@ import { logger } from '../lib/logger'
 import { cache } from '../lib/cache'
 
 const api = axios.create({
-    baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8080',
+    // Use relative path in production; 
+    // Vite handles proxy in dev
+    baseURL: import.meta.env.VITE_API_URL || '',
     withCredentials: true
 })
-
 
 api.interceptors.request.use((config) => {
     logger.info(`Request: ${config.method?.toUpperCase()} ${config.url}`)

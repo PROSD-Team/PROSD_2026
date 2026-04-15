@@ -3,7 +3,8 @@ import * as signalR from '@microsoft/signalr'
 import { Store } from '../store/Store'
 import { useApi } from './useAPI'
 
-const HUB_URL = 'http://localhost:8080/hubs/pipeline'
+// Use relative path – works with Nginx proxy and Vite dev proxy
+const HUB_URL = '/hubs/pipeline'
 
 export const usePipeline = () => {
     const { steps, setJobResult, setJobStatus } = Store()
