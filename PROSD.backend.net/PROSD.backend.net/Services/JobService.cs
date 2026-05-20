@@ -49,6 +49,8 @@ namespace PROSD.backend.net.Services
                         : request.TargetWorker,
                     S3FolderPath = folderPath,
                     ConnectionId = request.ConnectionId,
+                    UserId = request.UserId,
+                    PipelineId = request.PipelineId,
                     CreatedAt = DateTime.UtcNow,
                     StartedAt = null,
                     RetryCount = 0

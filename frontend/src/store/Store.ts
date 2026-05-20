@@ -18,6 +18,8 @@ interface AppState {
     selectedStepId: string | null
     jobResult: string | null
     jobStatus: string | null
+    activePipelineId: number | null
+    activePipelineName: string
 
     addStep: (step: PipelineStep) => void
     removeStep: (id: string) => void
@@ -26,6 +28,8 @@ interface AppState {
     updateStepParams: (id: string, parametersJson: string) => void
     setJobResult: (result: string | null) => void
     setJobStatus: (status: string | null) => void
+    setPipelineName: (name: string) => void
+    setPipeline: (steps: PipelineStep[], name: string, id: number | null) => void
     clearPipeline: () => void
 }
 
@@ -39,6 +43,8 @@ export const Store = create<AppState>((set) => ({
     selectedStepId: null,
     jobResult: null,
     jobStatus: null,
+    activePipelineId: null,
+    activePipelineName: '',
 
     addStep: (step) => set((s) => ({ steps: [...s.steps, step] })),
     removeStep: (id) => set((s) => ({ steps: s.steps.filter(x => x.id !== id) })),
@@ -54,5 +60,21 @@ export const Store = create<AppState>((set) => ({
     })),
     setJobResult: (result) => set({ jobResult: result }),
     setJobStatus: (status) => set({ jobStatus: status }),
-    clearPipeline: () => set({ steps: [], selectedStepId: null, jobResult: null, jobStatus: null }),
+    setPipelineName: (name) => set({ activePipelineName: name }),
+    setPipeline: (steps, name, id) => set({
+        steps,
+        selectedStepId: null,
+        activePipelineId: id,
+        activePipelineName: name,
+        jobResult: null,
+        jobStatus: null
+    }),
+    clearPipeline: () => set({
+        steps: [],
+        selectedStepId: null,
+        jobResult: null,
+        jobStatus: null,
+        activePipelineId: null,
+        activePipelineName: ''
+    }),
 }))

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Header } from '../components/Header';
 import { Algorithms } from "../components/Algorithms";
 import { SideBar1 } from "../components/SideBar1";
@@ -6,10 +6,21 @@ import { SideBar2 } from "../components/SideBar2";
 import { Workspace } from "../components/Workspaces";
 import { Parameters } from "../components/Parameters";
 import { Processes } from "../components/Processes";
+import { HistoryPanel } from "../components/HistoryPanel";
+import { getStoredUser } from "../lib/session";
+import { useNavigate } from "react-router-dom";
 
 const Home: React.FC = () => {
   const [leftPanel, setLeftPanel] = useState<string | null>("processes");
   const [rightPanel, setRightPanel] = useState<string | null>("parameters");
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const user = getStoredUser();
+    if (!user) {
+      navigate("/");
+    }
+  }, [navigate]);
 
   return (
     <div className="h-screen w-screen flex flex-col bg-[#2c2c2c] overflow-hidden font-sans">
@@ -29,7 +40,7 @@ const Home: React.FC = () => {
               <Processes />
 
             )}
-            {leftPanel === "history" && <div className="text-white p-4 border-t-[1px] border-[#555555]">History panel</div>}
+            {leftPanel === "history" && <HistoryPanel />}
           </div>
         )}
 
@@ -42,7 +53,7 @@ const Home: React.FC = () => {
           <div className="bg-[#3a3a3a] border-l-[1px] border-[#555555] w-[260px] flex-shrink-0 flex flex-col">
             {rightPanel === "parameters" && <Parameters />}
             {rightPanel === "algorithms" && <Algorithms />}
-            {rightPanel === "history" && <div className="text-white p-4 bg-[#2c2c2c] h-screen  border-[#555555]">History panel</div>}
+            {rightPanel === "history" && <HistoryPanel />}
           </div>
         )}
 

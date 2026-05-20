@@ -14,5 +14,9 @@ namespace PROSD.backend.net.Dtos
         public string ParametersJson { get; set; } = string.Empty;
 
         public string? TargetWorker { get; set; }
+
+        public Guid? UserId { get; set; }
+
+        public int? PipelineId { get; set; }
     }
 }
