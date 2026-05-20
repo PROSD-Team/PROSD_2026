@@ -1,4 +1,4 @@
-import React from "react"
+import React, { useState } from "react"
 import { Store } from "../store/Store"
 import { usePipeline } from "../hooks/usePipeline"
 import { useApi } from "../hooks/useAPI"
@@ -23,14 +23,22 @@ export const Workspace: React.FC = () => {
     const { run } = usePipeline()
     const { post, put } = useApi()
     const user = getStoredUser()
+    const [saveMessage, setSaveMessage] = useState<string | null>(null)
 
     const handleSave = async () => {
-        if (!user) return
-        if (steps.length === 0) return
+        setSaveMessage(null)
+        if (!user) {
+            setSaveMessage("Увійдіть, щоб зберегти пайплайн.")
+            return
+        }
+        if (steps.length === 0) {
+            setSaveMessage("Додайте хоча б один алгоритм для збереження.")
+            return
+        }
 
         const name = activePipelineName.trim()
         if (!name) {
-            alert("Вкажіть назву пайплайна перед збереженням.")
+            setSaveMessage("Вкажіть назву пайплайна перед збереженням.")
             return
         }
 
@@ -49,6 +57,7 @@ export const Workspace: React.FC = () => {
 
         if (result) {
             setPipeline(steps, result.name, result.id)
+            setSaveMessage("Пайплайн збережено.")
         }
     }
 
@@ -59,7 +68,10 @@ export const Workspace: React.FC = () => {
             <div className="flex bg-[#2c2c2c] h-[48px] items-center gap-3 px-4 border-b border-[#555]">
                 <input
                     value={activePipelineName}
-                    onChange={(e) => setPipelineName(e.target.value)}
+                    onChange={(e) => {
+                        setPipelineName(e.target.value)
+                        if (saveMessage) setSaveMessage(null)
+                    }}
                     placeholder="Pipeline name"
                     className="h-8 w-52 rounded-md bg-[#3a3a3a] px-3 text-sm text-white outline-none focus:border-[#f97316] border border-transparent"
                 />
@@ -82,6 +94,11 @@ export const Workspace: React.FC = () => {
                     </button>
                 </div>
             </div>
+            {saveMessage && (
+                <div className="px-4 py-2 text-xs text-[#f28c28]">
+                    {saveMessage}
+                </div>
+            )}
 
             {/* Pipeline steps list */}
             <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-2">

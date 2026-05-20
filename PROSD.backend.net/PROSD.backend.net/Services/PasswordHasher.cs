@@ -20,4 +20,23 @@ public static class PasswordHasher
 
         return $"{Iterations}.{Convert.ToBase64String(salt)}.{Convert.ToBase64String(key)}";
     }
+
+    public static bool VerifyPassword(string password, string hashedPassword)
+    {
+        var parts = hashedPassword.Split('.');
+        if (parts.Length != 3) return false;
+        if (!int.TryParse(parts[0], out var iterations)) return false;
+
+        var salt = Convert.FromBase64String(parts[1]);
+        var expectedKey = Convert.FromBase64String(parts[2]);
+
+        var actualKey = Rfc2898DeriveBytes.Pbkdf2(
+            password,
+            salt,
+            iterations,
+            HashAlgorithmName.SHA256,
+            expectedKey.Length);
+
+        return CryptographicOperations.FixedTimeEquals(actualKey, expectedKey);
+    }
 }

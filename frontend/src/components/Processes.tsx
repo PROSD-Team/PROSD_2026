@@ -8,17 +8,18 @@ const parseSteps = (definitionJson: string): PipelineStep[] => {
   try {
     const parsed = JSON.parse(definitionJson) as { steps?: PipelineStep[] };
     if (Array.isArray(parsed)) return parsed as PipelineStep[];
-    if (Array.isArray(parsed.steps)) return parsed.steps;
+    return Array.isArray(parsed.steps) ? parsed.steps : [];
   } catch {
     return [];
   }
-  return [];
 };
 
 export const Processes: React.FC = () => {
   const { get, post } = useApi();
   const { setPipeline, activePipelineId } = Store();
   const [pipelines, setPipelines] = useState<PipelineSummary[]>([]);
+  const [branchingId, setBranchingId] = useState<number | null>(null);
+  const [branchName, setBranchName] = useState("");
 
   const userId = getStoredUser()?.id;
 
@@ -38,9 +39,14 @@ export const Processes: React.FC = () => {
     setPipeline(steps, pipeline.name, pipeline.id);
   };
 
-  const handleBranch = async (pipeline: PipelineSummary) => {
+  const startBranch = (pipeline: PipelineSummary) => {
+    setBranchingId(pipeline.id);
+    setBranchName(`${pipeline.name} (branch)`);
+  };
+
+  const submitBranch = async (pipeline: PipelineSummary) => {
     if (!userId) return;
-    const name = window.prompt("Назва нового відгалуження", `${pipeline.name} (branch)`);
+    const name = branchName.trim();
     if (!name) return;
     const result = await post<PipelineSummary>(
       `/api/pipelines/${pipeline.id}/branch`,
@@ -55,6 +61,13 @@ export const Processes: React.FC = () => {
         if (updated) setPipelines(updated);
       }
     }
+    setBranchingId(null);
+    setBranchName("");
+  };
+
+  const cancelBranch = () => {
+    setBranchingId(null);
+    setBranchName("");
   };
 
   if (!userId) {
@@ -112,13 +125,39 @@ export const Processes: React.FC = () => {
                 </button>
                 <button
                   type="button"
-                  onClick={() => handleBranch(pipeline)}
+                  onClick={() => startBranch(pipeline)}
                   className="rounded bg-[#f28c28] px-2 py-1 text-xs text-white"
                 >
                   Branch
                 </button>
               </div>
             </div>
+            {branchingId === pipeline.id && (
+              <div className="mt-3 flex flex-col gap-2">
+                <input
+                  value={branchName}
+                  onChange={(e) => setBranchName(e.target.value)}
+                  placeholder="Branch name"
+                  className="h-8 rounded bg-[#3b3b3b] px-3 text-xs text-white outline-none"
+                />
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => submitBranch(pipeline)}
+                    className="rounded bg-[#f28c28] px-2 py-1 text-xs text-white"
+                  >
+                    Save branch
+                  </button>
+                  <button
+                    type="button"
+                    onClick={cancelBranch}
+                    className="rounded bg-[#3b3b3b] px-2 py-1 text-xs text-white"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         ))}
       </div>
