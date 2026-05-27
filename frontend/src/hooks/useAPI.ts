@@ -38,5 +38,20 @@ export const useApi = () => {
         }
     }
 
-    return { get, post }
+    const put = async <T>(url: string, body: unknown): Promise<T | null> => {
+        setLoading(true)
+        setError(null)
+        try {
+            const res = await api.put<T>(url, body)
+            return res.data
+        } catch (e) {
+            const message = e instanceof Error ? e.message : 'Щось пішло не так'
+            setError(message)
+            return null
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    return { get, post, put }
 }

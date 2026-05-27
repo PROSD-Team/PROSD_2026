@@ -1,20 +1,104 @@
-import React from "react"
+import React, { useState } from "react"
 import { Store } from "../store/Store"
 import { usePipeline } from "../hooks/usePipeline"
+import { useApi } from "../hooks/useAPI"
+import { getStoredUser } from "../lib/session"
+import type { PipelineSummary } from "../types/api"
 
 export const Workspace: React.FC = () => {
-    const { steps, selectedStepId, selectStep, removeStep, moveStep, jobResult, jobStatus } = Store()
+    const {
+        steps,
+        selectedStepId,
+        selectStep,
+        removeStep,
+        moveStep,
+        jobResult,
+        jobStatus,
+        activePipelineId,
+        activePipelineName,
+        setPipelineName,
+        setPipeline,
+        clearPipeline
+    } = Store()
     const { run } = usePipeline()
+    const { post, put } = useApi()
+    const user = getStoredUser()
+    const [saveMessage, setSaveMessage] = useState<string | null>(null)
+
+    const handleSave = async () => {
+        setSaveMessage(null)
+        if (!user) {
+            setSaveMessage("Увійдіть, щоб зберегти пайплайн.")
+            return
+        }
+        if (steps.length === 0) {
+            setSaveMessage("Додайте хоча б один алгоритм для збереження.")
+            return
+        }
+
+        const name = activePipelineName.trim()
+        if (!name) {
+            setSaveMessage("Вкажіть назву пайплайна перед збереженням.")
+            return
+        }
+
+        const payload = {
+            userId: user.id,
+            name,
+            definitionJson: JSON.stringify({ steps }),
+        }
+
+        let result: PipelineSummary | null = null
+        if (activePipelineId) {
+            result = await put<PipelineSummary>(`/api/pipelines/${activePipelineId}`, payload)
+        } else {
+            result = await post<PipelineSummary>("/api/pipelines", payload)
+        }
+
+        if (result) {
+            setPipeline(steps, result.name, result.id)
+            setSaveMessage("Пайплайн збережено.")
+        }
+    }
 
     return (
         <div className="flex flex-col h-full w-full relative">
 
             {/* Tabs bar */}
-            <div className="flex bg-[#2c2c2c] h-[40px] items-center px-4 border-b border-[#555]">
+            <div className="flex bg-[#2c2c2c] h-[48px] items-center gap-3 px-4 border-b border-[#555]">
+                <input
+                    value={activePipelineName}
+                    onChange={(e) => {
+                        setPipelineName(e.target.value)
+                        if (saveMessage) setSaveMessage(null)
+                    }}
+                    placeholder="Pipeline name"
+                    className="h-8 w-52 rounded-md bg-[#3a3a3a] px-3 text-sm text-white outline-none focus:border-[#f97316] border border-transparent"
+                />
                 <span className="text-[#777] text-sm">
                     {steps.length === 0 ? 'Pipeline empty' : `${steps.length} step(s)`}
                 </span>
+                <div className="ml-auto flex items-center gap-2">
+                    <button
+                        onClick={handleSave}
+                        disabled={!user || steps.length === 0}
+                        className="rounded-md bg-[#3a3a3a] px-3 py-1.5 text-xs text-white hover:bg-[#4a4a4a] disabled:opacity-40"
+                    >
+                        {activePipelineId ? "Update" : "Save"}
+                    </button>
+                    <button
+                        onClick={clearPipeline}
+                        className="rounded-md bg-[#2c2c2c] px-3 py-1.5 text-xs text-[#aaa] hover:text-white"
+                    >
+                        New
+                    </button>
+                </div>
             </div>
+            {saveMessage && (
+                <div className="px-4 py-2 text-xs text-[#f28c28]">
+                    {saveMessage}
+                </div>
+            )}
 
             {/* Pipeline steps list */}
             <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-2">

@@ -4,6 +4,14 @@
     {
         public int Id { get; set; }
 
+        public Guid? UserId { get; set; }
+
+        public UserAccount? User { get; set; }
+
+        public int? PipelineId { get; set; }
+
+        public Pipeline? Pipeline { get; set; }
+
         public string Status { get; set; } = "pending";
 
         public string PipelineSteps { get; set; } = string.Empty;

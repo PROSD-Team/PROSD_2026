@@ -2,11 +2,12 @@ import { useEffect, useRef } from 'react'
 import * as signalR from '@microsoft/signalr'
 import { Store } from '../store/Store'
 import { useApi } from './useAPI'
+import { getStoredUser } from '../lib/session'
 
 const HUB_URL = 'http://localhost:8080/hubs/pipeline'
 
 export const usePipeline = () => {
-    const { steps, setJobResult, setJobStatus } = Store()
+    const { steps, setJobResult, setJobStatus, activePipelineId } = Store()
     const { post } = useApi()
     const connectionRef = useRef<signalR.HubConnection | null>(null)
     const startedRef = useRef(false)
@@ -62,11 +63,15 @@ export const usePipeline = () => {
         setJobStatus('running')
         setJobResult(null)
 
+        const user = getStoredUser()
+
         await post('/api/jobs', {
             pipelineSteps,
             connectionId: connId,
             parametersJson: firstStep.parametersJson || '{}',
             targetWorker: firstStep.algorithmName,
+            userId: user?.id,
+            pipelineId: activePipelineId ?? undefined,
         })
     }
 

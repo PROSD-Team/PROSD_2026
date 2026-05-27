@@ -1,4 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using PROSD.backend.net.Data;
 using PROSD.backend.net.Dtos;
 using PROSD.backend.net.Services;
 
@@ -13,10 +15,12 @@ namespace PROSD.backend.net.Controllers
     public class JobsController : ControllerBase
     {
         private readonly JobService _jobService;
+        private readonly AppDbContext _dbContext;
 
-        public JobsController(JobService jobService)
+        public JobsController(JobService jobService, AppDbContext dbContext)
         {
             _jobService = jobService;
+            _dbContext = dbContext;
         }
 
         /// <summary>
@@ -92,6 +96,40 @@ namespace PROSD.backend.net.Controllers
                 currentStep = job.CurrentStepIndex,
                 targetWorker = job.TargetWorker
             });
+        }
+
+        /// <summary>
+        /// Отримує історію запусків алгоритмів для конкретного користувача.
+        /// </summary>
+        /// <param name="userId">Ідентифікатор користувача.</param>
+        /// <returns>Список виконаних Job-ів.</returns>
+        [HttpGet("history")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> GetHistory([FromQuery] Guid userId)
+        {
+            if (userId == Guid.Empty)
+            {
+                return BadRequest(new { message = "userId is required." });
+            }
+
+            var history = await _dbContext.Jobs
+                .AsNoTracking()
+                .Include(j => j.Pipeline)
+                .Where(j => j.UserId == userId)
+                .OrderByDescending(j => j.CreatedAt)
+                .Select(j => new
+                {
+                    jobId = j.Id,
+                    status = j.Status,
+                    pipelineSteps = j.PipelineSteps,
+                    pipelineId = j.PipelineId,
+                    pipelineName = j.Pipeline != null ? j.Pipeline.Name : null,
+                    createdAt = j.CreatedAt
+                })
+                .ToListAsync();
+
+            return Ok(history);
         }
     }
 }
